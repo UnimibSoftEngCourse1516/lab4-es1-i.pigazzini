@@ -373,36 +373,38 @@ public final class FastByIDMap<V> implements Serializable, Cloneable {
     int otherLength = otherKeys.length;
     int max = Math.min(length, otherLength);
 
+    boolean result = true;
     int i = 0;
     while (i < max) {
       long key = keys[i];
       long otherKey = otherKeys[i];
       if (key == NULL || key == REMOVED) {
         if (otherKey != NULL && otherKey != REMOVED) {
-          return false;
+          result = false;;
         }
       } else {
         if (key != otherKey || !values[i].equals(otherValues[i])) {
-          return false;
+          result = false;
         }
       }
       i++;
     }
-    while (i < length) {
-      long key = keys[i];
-      if (key != NULL && key != REMOVED) {
-        return false;
-      }
-      i++;
-    }
-    while (i < otherLength) {
-      long key = otherKeys[i];
-      if (key != NULL && key != REMOVED) {
-        return false;
-      }
-      i++;
-    }
-    return true;
+
+    this.equalsHelper(keys, length, i, result);
+    this.equalsHelper(otherKeys, otherLength, i, result);
+    
+    return result;
+  }
+  
+  /* method added by Ilaria Pigazzini*/
+  public void equalsHelper (long[] someKey, int someLength, int i, boolean result){
+	  while(i<someLength){
+		  long _someKey = someKey[i];
+		  if(_someKey != NULL && _someKey != REMOVED){
+			  result =  false;
+		  }
+		  i++;
+	  }
   }
   
   private final class KeyIterator extends AbstractLongPrimitiveIterator {
