@@ -420,7 +420,73 @@ public class FileDataModel extends AbstractDataModel {
     // This is kind of gross but need to handle two types of storage
     Object maybePrefs = data.get(userID);
     if (fromPriorData) {
-      // Data are PreferenceArray
+      processLineInfromPriorData(data, timestamps, preferenceValueString,
+			hasTimestamp, timestampString, userID, itemID, maybePrefs);
+
+    } else {
+      processLineWithoutPriorData(data, timestamps, preferenceValueString,
+			hasTimestamp, timestampString, userID, itemID, maybePrefs);
+
+    }
+  }
+
+private void processLineWithoutPriorData(FastByIDMap<?> data,
+		FastByIDMap<FastByIDMap<Long>> timestamps,
+		String preferenceValueString, boolean hasTimestamp,
+		String timestampString, long userID, long itemID, Object maybePrefs) {
+	// Data are Collection<Preference>
+
+      Collection<Preference> prefs = (Collection<Preference>) maybePrefs;
+
+      if (!hasTimestamp && preferenceValueString.isEmpty()) {
+        // Then line is of form "userID,itemID,", meaning remove
+        if (prefs != null) {
+          // remove pref
+          Iterator<Preference> prefsIterator = prefs.iterator();
+          while (prefsIterator.hasNext()) {
+            Preference pref = prefsIterator.next();
+            if (pref.getItemID() == itemID) {
+              prefsIterator.remove();
+              break;
+            }
+          }
+        }
+
+        removeTimestamp(userID, itemID, timestamps);
+        
+      } else {
+
+        float preferenceValue = Float.parseFloat(preferenceValueString);
+
+        boolean exists = false;
+        if (prefs != null) {
+          for (Preference pref : prefs) {
+            if (pref.getItemID() == itemID) {
+              exists = true;
+              pref.setValue(preferenceValue);
+              break;
+            }
+          }
+        }
+
+        if (!exists) {
+          if (prefs == null) {
+            prefs = new ArrayList<>(2);
+            ((FastByIDMap<Collection<Preference>>) data).put(userID, prefs);
+          }
+          prefs.add(new GenericPreference(userID, itemID, preferenceValue));
+        }
+
+        addTimestamp(userID, itemID, timestampString, timestamps);
+
+      }
+}
+
+private void processLineInfromPriorData(FastByIDMap<?> data,
+		FastByIDMap<FastByIDMap<Long>> timestamps,
+		String preferenceValueString, boolean hasTimestamp,
+		String timestampString, long userID, long itemID, Object maybePrefs) {
+	// Data are PreferenceArray
 
       PreferenceArray prefs = (PreferenceArray) maybePrefs;
       if (!hasTimestamp && preferenceValueString.isEmpty()) {
@@ -486,57 +552,7 @@ public class FileDataModel extends AbstractDataModel {
       }
 
       addTimestamp(userID, itemID, timestampString, timestamps);
-
-    } else {
-      // Data are Collection<Preference>
-
-      Collection<Preference> prefs = (Collection<Preference>) maybePrefs;
-
-      if (!hasTimestamp && preferenceValueString.isEmpty()) {
-        // Then line is of form "userID,itemID,", meaning remove
-        if (prefs != null) {
-          // remove pref
-          Iterator<Preference> prefsIterator = prefs.iterator();
-          while (prefsIterator.hasNext()) {
-            Preference pref = prefsIterator.next();
-            if (pref.getItemID() == itemID) {
-              prefsIterator.remove();
-              break;
-            }
-          }
-        }
-
-        removeTimestamp(userID, itemID, timestamps);
-        
-      } else {
-
-        float preferenceValue = Float.parseFloat(preferenceValueString);
-
-        boolean exists = false;
-        if (prefs != null) {
-          for (Preference pref : prefs) {
-            if (pref.getItemID() == itemID) {
-              exists = true;
-              pref.setValue(preferenceValue);
-              break;
-            }
-          }
-        }
-
-        if (!exists) {
-          if (prefs == null) {
-            prefs = new ArrayList<>(2);
-            ((FastByIDMap<Collection<Preference>>) data).put(userID, prefs);
-          }
-          prefs.add(new GenericPreference(userID, itemID, preferenceValue));
-        }
-
-        addTimestamp(userID, itemID, timestampString, timestamps);
-
-      }
-
-    }
-  }
+}
 
   protected void processFileWithoutID(FileLineIterator dataOrUpdateFileIterator,
                                       FastByIDMap<FastIDSet> data,

@@ -34,40 +34,19 @@ public class ClosestCentroidBenchmark {
   }
 
   public void benchmark(DistanceMeasure measure) throws IOException {
-    SparseMatrix clusterDistances = new SparseMatrix(mark.numClusters, mark.numClusters);
-    for (int i = 0; i < mark.numClusters; i++) {
-      for (int j = 0; j < mark.numClusters; j++) {
-        double distance = Double.POSITIVE_INFINITY;
-        if (i != j) {
-          distance = measure.distance(mark.clusters[i], mark.clusters[j]);
-        }
-        clusterDistances.setQuick(i, j, distance);
-      }
-    }
+    SparseMatrix clusterDistances = initClusterDistances(measure);
 
-    long distanceCalculations = 0;
-    TimingStatistics stats = new TimingStatistics();
-    for (int l = 0; l < mark.loop; l++) {
-      TimingStatistics.Call call = stats.newCall(mark.leadTimeUsec);
-      for (int i = 0; i < mark.numVectors; i++) {
-        Vector vector = mark.vectors[1][mark.vIndex(i)];
-        double minDistance = Double.MAX_VALUE;
-        for (int k = 0; k < mark.numClusters; k++) {
-          double distance = measure.distance(vector, mark.clusters[k]);
-          distanceCalculations++;
-          if (distance < minDistance) {
-            minDistance = distance;
-          }
-        }
-      }
-      if (call.end(mark.maxTimeUsec)) {
-        break;
-      }
-    }
-    mark.printStats(stats, measure.getClass().getName(), "Closest C w/o Elkan's trick", "distanceCalculations = "
-        + distanceCalculations);
+    
+	calculateDistanceWithoutElkan(measure);
 
-    distanceCalculations = 0;
+	calculateDistanceWithElkan(measure, clusterDistances);
+  }
+
+private void calculateDistanceWithElkan(DistanceMeasure measure,
+		SparseMatrix clusterDistances) {
+	long distanceCalculations;
+	distanceCalculations = 0;
+    TimingStatistics stats;
     stats = new TimingStatistics();
     Random rand = RandomUtils.getRandom();
     for (int l = 0; l < mark.loop; l++) {
@@ -94,5 +73,43 @@ public class ClosestCentroidBenchmark {
     }
     mark.printStats(stats, measure.getClass().getName(), "Closest C w/ Elkan's trick", "distanceCalculations = "
         + distanceCalculations);
-  }
+}
+
+private void calculateDistanceWithoutElkan(DistanceMeasure measure) {
+	long distanceCalculations = 0;
+    TimingStatistics stats = new TimingStatistics();
+    for (int l = 0; l < mark.loop; l++) {
+      TimingStatistics.Call call = stats.newCall(mark.leadTimeUsec);
+      for (int i = 0; i < mark.numVectors; i++) {
+        Vector vector = mark.vectors[1][mark.vIndex(i)];
+        double minDistance = Double.MAX_VALUE;
+        for (int k = 0; k < mark.numClusters; k++) {
+          double distance = measure.distance(vector, mark.clusters[k]);
+          distanceCalculations++;
+          if (distance < minDistance) {
+            minDistance = distance;
+          }
+        }
+      }
+      if (call.end(mark.maxTimeUsec)) {
+        break;
+      }
+    }
+    mark.printStats(stats, measure.getClass().getName(), "Closest C w/o Elkan's trick", "distanceCalculations = "
+        + distanceCalculations);
+}
+
+private SparseMatrix initClusterDistances(DistanceMeasure measure) {
+	SparseMatrix clusterDistances = new SparseMatrix(mark.numClusters, mark.numClusters);
+    for (int i = 0; i < mark.numClusters; i++) {
+      for (int j = 0; j < mark.numClusters; j++) {
+        double distance = Double.POSITIVE_INFINITY;
+        if (i != j) {
+          distance = measure.distance(mark.clusters[i], mark.clusters[j]);
+        }
+        clusterDistances.setQuick(i, j, distance);
+      }
+    }
+	return clusterDistances;
+}
 }

@@ -51,10 +51,12 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -449,14 +451,18 @@ public class VectorBenchmarks {
     int pad = 24;
     StringBuilder sb = new StringBuilder(1000);
     sb.append(StringUtils.rightPad("BenchMarks", pad));
-    for (int i = 0; i < implType.size(); i++) {
-      for (Entry<String,Integer> e : implType.entrySet()) {
-        if (e.getValue() == i) {
-          sb.append(StringUtils.rightPad(e.getKey(), pad).substring(0, pad));
-          break;
-        }
-      }
-    }
+		for (int i = 0; i < implType.size(); i++) {
+			boolean valueEqualsI = false;
+			Set<String> keySet = implType.keySet();
+			Iterator<String> keySetIterator = keySet.iterator();
+			while (keySetIterator.hasNext() && !valueEqualsI) {
+				String key = keySetIterator.next();
+				if (implType.get(key) == i) {
+					sb.append(StringUtils.rightPad(key, pad).substring(0, pad));
+					valueEqualsI = true;
+				}
+			}
+		}
     sb.append('\n');
     List<String> keys = new ArrayList<>(statsMap.keySet());
     Collections.sort(keys);
@@ -467,7 +473,15 @@ public class VectorBenchmarks {
         maxStats = Math.max(maxStats, stat.length);
       }
 
-      for (int i = 0; i < maxStats; i++) {
+      toStringMaxStats(pad, sb, benchmarkName, implTokenizedStats, maxStats);
+      sb.append('\n');
+    }
+    return sb.toString();
+  }
+
+private void toStringMaxStats(int pad, StringBuilder sb, String benchmarkName, List<String[]> implTokenizedStats,
+		int maxStats) {
+	for (int i = 0; i < maxStats; i++) {
         boolean printedName = false;
         for (String[] stats : implTokenizedStats) {
           if (i == 0 && !printedName) {
@@ -484,12 +498,10 @@ public class VectorBenchmarks {
           }
 
         }
+        
         sb.append('\n');
       }
-      sb.append('\n');
-    }
-    return sb.toString();
-  }
+}
 
   public BenchmarkRunner getRunner() {
     return runner;
