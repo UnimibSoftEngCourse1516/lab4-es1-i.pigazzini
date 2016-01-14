@@ -59,7 +59,12 @@ public class FixedRunningAverage implements RunningAverage, Serializable {
   public synchronized void changeDatum(double delta) {
     throw new UnsupportedOperationException();
   }
-
+  /*
+   * Comment added by Ilaria Pigazzini
+   * The following code is a "duplicated code" FALSE POSITIVE:
+   * this class is one of multiples "RunninAverage" implementations,
+   * the duplication of method is due to method overriding.
+   */
   @Override
   public synchronized int getCount() {
     return count;
